@@ -28,6 +28,15 @@ static uint32_t missing_count;
 //SDL_cond * ym_cond;
 static uint8_t quitting = 0;
 
+static retro_environment_t   env_cb   = NULL;
+static retro_input_state_t   input_cb = NULL;
+static retro_input_poll_t    poll_cb  = NULL;
+static retro_video_refresh_t video_cb = NULL;
+static struct retro_hw_render_callback hw_render;
+
+static bool bool_env(unsigned env, bool value) { return env_cb(env, &value); }
+static bool uint_env(unsigned env, unsigned value) { return env_cb(env, &value); }
+
 void render_close_audio()
 {
 	quitting = 1;
@@ -99,9 +108,12 @@ static GLuint load_shader(char * fname, GLenum shader_type)
 
 void render_alloc_surfaces(vdp_context * context)
 {
-	context->oddbuf = context->framebuf = malloc(512 * 256 * 4 * 2);
-	memset(context->oddbuf, 0, 512 * 256 * 4 * 2);
+	context->oddbuf = context->framebuf = calloc(1, 512 * 256 * 4 * 2);
 	context->evenbuf = ((char *)context->oddbuf) + 512 * 256 * 4;
+}
+
+static void context_reset(void)
+{
 	glGenTextures(3, textures);
 	for (int i = 0; i < 3; i++)
 	{
@@ -111,7 +123,7 @@ void render_alloc_surfaces(vdp_context * context)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		if (i < 2) {
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 512, 256, 0, GL_BGRA, GL_UNSIGNED_BYTE, i ? context->evenbuf : context->oddbuf);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 512, 256, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
 		} else {
 			uint32_t blank = 255 << 24;
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_BGRA, GL_UNSIGNED_BYTE, &blank);
@@ -142,6 +154,13 @@ void render_alloc_surfaces(vdp_context * context)
 	at_pos = glGetAttribLocation(program, "pos");
 }
 
+static void context_destroy(void)
+{
+	glDeleteTextures(3, textures);
+	glDeleteBuffers(2, buffers);
+	glDeleteProgram(program);
+}
+
 void render_init(int width, int height, char * title, uint32_t fps, uint8_t fullscreen)
 {
 	printf("width: %d, height: %d\n", width, height);
@@ -159,6 +178,19 @@ void render_init(int width, int height, char * title, uint32_t fps, uint8_t full
 				vertex_data[i*2+1] *= aspect/(4.0/3.0);
 			}
 		}
+	}
+
+	hw_render.context_type = RETRO_HW_CONTEXT_OPENGL;
+	hw_render.context_reset = context_reset;
+	hw_render.context_destroy = context_destroy;
+	hw_render.depth = true;
+	hw_render.stencil = true;
+	hw_render.bottom_left_origin = true;
+
+	if (!env_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render))
+	{
+		env_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
+		quitting = 1;
 	}
 
 	//psg_cond = SDL_CreateCond();
@@ -339,4 +371,76 @@ uint32_t render_sample_rate()
 	return 48000;
 }
 
+RETRO_API void retro_init(void)
+{
+}
+
+RETRO_API void retro_deinit(void) { }
+
+
+RETRO_API void retro_reset(void)
+{
+
+}
+
+RETRO_API bool retro_load_game(const struct retro_game_info *game)
+{
+   uint_env(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, RETRO_PIXEL_FORMAT_XRGB8888);
+   return true;
+}
+
+RETRO_API void retro_unload_game(void)
+{
+
+}
+
+RETRO_API void retro_set_controller_port_device(unsigned port, unsigned device)
+{
+
+}
+
+RETRO_API void retro_get_system_info(struct retro_system_info *info)
+{
+   info->library_name     = "BlastEm";
+   info->library_version  = "hg";
+   info->need_fullpath    = true;
+   info->valid_extensions = "";
+}
+
+RETRO_API void retro_get_system_av_info(struct retro_system_av_info *info)
+{
+   info->geometry.base_width   = 320;
+   info->geometry.base_height  = 240;
+   info->geometry.aspect_ratio = 320/240;
+   info->geometry.max_width    = info->geometry.base_width;
+   info->geometry.max_height   = info->geometry.base_height;
+   info->timing.fps            = 60;
+   info->timing.sample_rate    = 48000;
+}
+
+RETRO_API unsigned retro_api_version(void) { return RETRO_API_VERSION; }
+
+RETRO_API void retro_set_video_refresh(retro_video_refresh_t p) { video_cb = p; }
+RETRO_API void retro_set_audio_sample(retro_audio_sample_t p) { }
+RETRO_API void retro_set_audio_sample_batch(retro_audio_sample_batch_t p) { }
+RETRO_API void retro_set_input_poll(retro_input_poll_t p) { poll_cb = p; }
+RETRO_API void retro_set_input_state(retro_input_state_t p) { input_cb = p; }
+RETRO_API void retro_set_environment(retro_environment_t p)
+{
+   env_cb = p;
+}
+
+RETRO_API bool retro_load_game_special(unsigned game_type, const struct retro_game_info *info, size_t num_info)
+{
+   return false;
+}
+
+RETRO_API unsigned retro_get_region(void) { return RETRO_REGION_NTSC; }
+RETRO_API size_t retro_serialize_size(void) { return 0; }
+RETRO_API bool retro_serialize(void *data, size_t size) { return false; }
+RETRO_API bool retro_unserialize(const void *data, size_t size) { return false; }
+RETRO_API void retro_cheat_reset(void) { }
+RETRO_API void retro_cheat_set(unsigned index, bool enabled, const char *code) { }
+RETRO_API void *retro_get_memory_data(unsigned id) { return NULL; }
+RETRO_API size_t retro_get_memory_size(unsigned id) { return 0; }
 
