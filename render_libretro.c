@@ -416,8 +416,6 @@ static int parse_rom(const uint8_t *data, size_t size)
    if (size < sizeof(header))
       return -1;
    memcpy(header, data, sizeof(header));
-   data += sizeof(header);
-   size -= sizeof(header);
 
    if (header[1] == SMD_MAGIC1 && header[8] == SMD_MAGIC2 && header[9] == SMD_MAGIC3) {
       int i;
