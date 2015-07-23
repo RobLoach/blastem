@@ -13,7 +13,13 @@
 #include "io.h"
 #include "util.h"
 
-#include <glad/glad.h>
+#include "glad/glad.h"
+#include "libco/libco.h"
+
+static cothread_t main_thread = NULL;
+static cothread_t cpu_thread  = NULL;
+
+static const struct retro_game_info *game_info;
 
 static uint8_t render_dbg = 0;
 static uint8_t debug_pal = 0;
@@ -88,9 +94,9 @@ static GLuint textures[3], buffers[2], vshader, fshader, program, un_textures[2]
 
 static GLfloat vertex_data[] = {
    -1.0f, -1.0f,
-   1.0f, -1.0f,
+    1.0f, -1.0f,
    -1.0f,  1.0f,
-   1.0f,  1.0f
+    1.0f,  1.0f
 };
 
 const GLushort element_data[] = {0, 1, 2, 3};
@@ -199,18 +205,18 @@ void render_init(int width, int height, char * title, uint32_t fps, uint8_t full
 {
    printf("width: %d, height: %d\n", width, height);
 
-   float aspect = (float)width / height;
-   tern_val def = {.ptrval = "normal"};
-   if (fabs(aspect - 4.0/3.0) > 0.01 && strcmp(tern_find_path_default(config, "video\0aspect\0", def).ptrval, "stretch")) {
-      for (int i = 0; i < 4; i++)
-      {
-         if (aspect > 4.0/3.0) {
-            vertex_data[i*2] *= (4.0/3.0)/aspect;
-         } else {
-            vertex_data[i*2+1] *= aspect/(4.0/3.0);
-         }
-      }
-   }
+//   float aspect = (float)width / height;
+//   tern_val def = {.ptrval = "normal"};
+//   if (fabs(aspect - 4.0/3.0) > 0.01 && strcmp(tern_find_path_default(config, "video\0aspect\0", def).ptrval, "stretch")) {
+//      for (int i = 0; i < 4; i++)
+//      {
+//         if (aspect > 4.0/3.0) {
+//            vertex_data[i*2] *= (4.0/3.0)/aspect;
+//         } else {
+//            vertex_data[i*2+1] *= aspect/(4.0/3.0);
+//         }
+//      }
+//   }
    //psg_cond = SDL_CreateCond();
    //ym_cond = SDL_CreateCond();
 
@@ -326,17 +332,19 @@ static int32_t handle_event(void *event)
 
 int wait_render_frame(vdp_context * context, int frame_limit)
 {
-   //	SDL_Event event;
-   int ret = 0;
-   //	while(SDL_PollEvent(&event)) {
-   //		ret = handle_event(&event);
-   //	}
-//   render_context(context);
-   return ret;
+   /* lets pray we're being called from cpu thread */
+
+   poll_cb();
+   render_context(context);
+   video_cb(RETRO_HW_FRAME_BUFFER_VALID, 320, 240, 320*sizeof(uint32_t));
+   co_switch(main_thread);
+
+   return 0;
 }
 
 void process_events()
 {
+   poll_cb();
    //	SDL_Event event;
    //	while(SDL_PollEvent(&event)) {
    //		handle_event(&event);
@@ -423,54 +431,22 @@ static int parse_rom(const uint8_t *data, size_t size)
    return size;
 }
 
-RETRO_API void retro_run(void)
+static void cpu_thread_wrapper()
 {
-    poll_cb();
-    video_cb(RETRO_HW_FRAME_BUFFER_VALID, 320, 240, 320*sizeof(uint32_t));
-}
-
-RETRO_API void retro_init(void)
-{
-   save_filename = "/xxxx_blastem__/a";
-   set_exe_str("./blastem");
-   config = load_config();
-}
-
-RETRO_API void retro_deinit(void) { }
-
-
-RETRO_API void retro_reset(void)
-{
-
-}
-
-RETRO_API bool retro_load_game(const struct retro_game_info *game)
-{
-   int rom_size  = parse_rom(game->data, game->size);
+   int rom_size  = parse_rom(game_info->data, game_info->size);
 
    if (rom_size <= 0)
-      return false;
+   {
+      game_info = NULL;
+      return;
+   }
+
+   co_switch(main_thread);
 
    tern_node *rom_db = load_rom_db();
    rom_info info = configure_rom(rom_db, cart, rom_size, base_map, sizeof(base_map)/sizeof(base_map[0]));
    byteswap_rom(rom_size);
    set_region(&info, 0);
-
-   uint_env(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, RETRO_PIXEL_FORMAT_XRGB8888);
-
-   hw_render.context_type = RETRO_HW_CONTEXT_OPENGL;
-   hw_render.context_reset = context_reset;
-   hw_render.context_destroy = context_destroy;
-   hw_render.depth = false;
-   hw_render.stencil = false;
-   hw_render.bottom_left_origin = true;
-
-   if (!env_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render))
-   {
-      env_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
-      quitting = 1;
-      abort();
-   }
 
    render_init(320, 240, "BlastEm", 60, true);
 
@@ -505,7 +481,59 @@ RETRO_API bool retro_load_game(const struct retro_game_info *game)
 
    set_keybindings(gen.ports);
 
+   co_switch(main_thread);
+
    init_run_cpu(&gen, &info, NULL, NULL, NULL);
+
+   quitting = 1;
+}
+
+RETRO_API void retro_run(void)
+{
+   glBindFramebuffer(GL_FRAMEBUFFER, hw_render.get_current_framebuffer());
+   co_switch(cpu_thread);
+
+}
+
+RETRO_API void retro_init(void)
+{
+   main_thread = co_active();
+   cpu_thread  = co_create(65536 * sizeof(void*), cpu_thread_wrapper);
+
+   save_filename = "/xxxx_blastem__/a";
+   set_exe_str("./blastem");
+   config = load_config();
+}
+
+RETRO_API void retro_deinit(void) { }
+
+
+RETRO_API void retro_reset(void)
+{
+
+}
+
+RETRO_API bool retro_load_game(const struct retro_game_info *game)
+{
+   game_info = game;
+   co_switch(cpu_thread);
+
+   if (game_info == NULL)
+      return false;
+
+   uint_env(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, RETRO_PIXEL_FORMAT_XRGB8888);
+
+   hw_render.context_type = RETRO_HW_CONTEXT_OPENGL;
+   hw_render.context_reset = context_reset;
+   hw_render.context_destroy = context_destroy;
+   hw_render.depth = false;
+   hw_render.stencil = false;
+   hw_render.bottom_left_origin = true;
+
+   if (!env_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render))
+      return false;
+
+   co_switch(cpu_thread);
 
    return true;
 }

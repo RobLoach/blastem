@@ -71,7 +71,7 @@ endif
 
 Z80OBJS=z80inst.o z80_to_x86.o
 AUDIOOBJS=ym2612.o psg.o wave.o
-CONFIGOBJS=config.o tern.o util.o glad/src/glad.o
+CONFIGOBJS=config.o tern.o util.o glad/src/glad.o libco/libco.o
 
 MAINOBJS=blastem.o debug.o gdb_remote.o vdp.o render_libretro.o io.o romdb.o $(CONFIGOBJS) gst.o $(M68KOBJS) $(TRANSOBJS) $(AUDIOOBJS)
 
@@ -95,7 +95,7 @@ ifeq ($(platform),win32)
    MAINOBJS+= glew32s.lib
 endif
 
-CFLAGS  += -Iglad/include -D__LIBRETRO__
+CFLAGS  += -Iglad/include -Ilibco -I. -D__LIBRETRO__
 
 all : $(BLASTEM)
 
