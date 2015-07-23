@@ -211,21 +211,6 @@ void render_init(int width, int height, char * title, uint32_t fps, uint8_t full
          }
       }
    }
-
-   hw_render.context_type = RETRO_HW_CONTEXT_OPENGL;
-   hw_render.context_reset = context_reset;
-   hw_render.context_destroy = context_destroy;
-   hw_render.depth = false;
-   hw_render.stencil = false;
-   hw_render.bottom_left_origin = true;
-
-   if (!env_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render))
-   {
-      env_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
-      quitting = 1;
-      abort();
-   }
-
    //psg_cond = SDL_CreateCond();
    //ym_cond = SDL_CreateCond();
 
@@ -346,7 +331,7 @@ int wait_render_frame(vdp_context * context, int frame_limit)
    //	while(SDL_PollEvent(&event)) {
    //		ret = handle_event(&event);
    //	}
-   render_context(context);
+//   render_context(context);
    return ret;
 }
 
@@ -440,6 +425,8 @@ static int parse_rom(const uint8_t *data, size_t size)
 
 RETRO_API void retro_run(void)
 {
+    poll_cb();
+    video_cb(RETRO_HW_FRAME_BUFFER_VALID, 320, 240, 320*sizeof(uint32_t));
 }
 
 RETRO_API void retro_init(void)
@@ -470,6 +457,21 @@ RETRO_API bool retro_load_game(const struct retro_game_info *game)
    set_region(&info, 0);
 
    uint_env(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, RETRO_PIXEL_FORMAT_XRGB8888);
+
+   hw_render.context_type = RETRO_HW_CONTEXT_OPENGL;
+   hw_render.context_reset = context_reset;
+   hw_render.context_destroy = context_destroy;
+   hw_render.depth = false;
+   hw_render.stencil = false;
+   hw_render.bottom_left_origin = true;
+
+   if (!env_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render))
+   {
+      env_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
+      quitting = 1;
+      abort();
+   }
+
    render_init(320, 240, "BlastEm", 60, true);
 
    memset(&gen, 0, sizeof(gen));
