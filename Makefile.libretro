@@ -2,13 +2,14 @@ ifeq ($(platform),win32)
    MEM:=mem_win.o
    BLASTEM:=blastem_libretro.dll
    CC:=gcc
-   CFLAGS:=-O2 -shared -std=gnu99 -Wreturn-type -Werror=return-type -Werror=implicit-function-declaration 
+   CFLAGS:=-O2 -std=gnu99 -Wreturn-type -Werror=return-type -Werror=implicit-function-declaration 
    LDFLAGS:= -lopengl32 -lglu32 -mwindows
    CPU:=i686
 else
    MEM:=mem.o
    BLASTEM:=blastem_libretro.so
-   CFLAGS:=-shared -fPIC -std=gnu99 -Wreturn-type -Werror=return-type -Werror=implicit-function-declaration -Wno-unused-value -Wno-logical-op-parentheses
+   CFLAGS:=-fPIC -std=gnu99 -Wreturn-type -Werror=return-type -Werror=implicit-function-declaration -Wno-unused-value -Wno-logical-op-parentheses
+   LDFLAGS:=-shared -fPIC -lm
    FIXUP:=
 endif #Windows
 
@@ -64,9 +65,9 @@ endif
 
 Z80OBJS=z80inst.o z80_to_x86.o
 AUDIOOBJS=ym2612.o psg.o wave.o
-CONFIGOBJS=config.o tern.o util.o
+CONFIGOBJS=config.o tern.o util.o glad/src/glad.o
 
-MAINOBJS=blastem.o debug.o gdb_remote.o vdp.o render_sdl.o io.o romdb.o $(CONFIGOBJS) gst.o $(M68KOBJS) $(TRANSOBJS) $(AUDIOOBJS)
+MAINOBJS=blastem.o debug.o gdb_remote.o vdp.o render_libretro.o io.o romdb.o $(CONFIGOBJS) gst.o $(M68KOBJS) $(TRANSOBJS) $(AUDIOOBJS)
 
 ifeq ($(CPU),x86_64)
    CFLAGS+=-DX86_64 -m64
@@ -89,11 +90,11 @@ ifeq ($(platform),win32)
 endif
 
 CFLAGS  += -Iglad/include -D__LIBRETRO__
-MINOBJS += glad/src/glad.c
 
-all : dis zdis stateview vgmplay blastem
+all : $(BLASTEM)
 
 $(BLASTEM) : $(MAINOBJS)
+	echo $(MAINOBJS)
 	$(CC) -o $(BLASTEM) $(MAINOBJS) $(LDFLAGS)
 	$(FIXUP)
 
@@ -118,11 +119,11 @@ ztestrun : ztestrun.o $(Z80OBJS) $(TRANSOBJS)
 ztestgen : ztestgen.o z80inst.o
 	$(CC) -ggdb -o ztestgen ztestgen.o z80inst.o
 
-stateview : stateview.o vdp.o render_sdl.o $(CONFIGOBJS) gst.o
-	$(CC) -o stateview stateview.o vdp.o render_sdl.o $(CONFIGOBJS) gst.o $(LDFLAGS)
+stateview : stateview.o vdp.o render_libretro.o $(CONFIGOBJS) gst.o
+	$(CC) -o stateview stateview.o vdp.o render_libretro.o $(CONFIGOBJS) gst.o $(LDFLAGS)
 
-vgmplay : vgmplay.o render_sdl.o $(CONFIGOBJS) $(AUDIOOBJS)
-	$(CC) -o vgmplay vgmplay.o render_sdl.o $(CONFIGOBJS) $(AUDIOOBJS) $(LDFLAGS)
+vgmplay : vgmplay.o render_libretro.o $(CONFIGOBJS) $(AUDIOOBJS)
+	$(CC) -o vgmplay vgmplay.o render_libretro.o $(CONFIGOBJS) $(AUDIOOBJS) $(LDFLAGS)
 	
 test : test.o vdp.o
 	$(CC) -o test test.o vdp.o
