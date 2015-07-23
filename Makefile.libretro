@@ -14,12 +14,18 @@ else
 endif #Windows
 
 ifeq ($(DEBUG),1)
-   CFLAGS  := -ggdb $(CFLAGS)
+   CFLAGS  := -ggdb -Wall $(CFLAGS)
    LDFLAGS := -ggdb $(LDFLAGS)
 else
    CFLAGS   := -O2 -flto $(CFLAGS)
    LDFLAGS  := -O2 -flto $(LDFLAGS)
 endif #DEBUG
+
+ifneq ($(SANITIZER),)
+    CFLAGS   := -fsanitize=$(SANITIZER) $(CFLAGS)
+    CXXFLAGS := -fsanitize=$(SANITIZER) $(CXXFLAGS)
+    LDFLAGS  := -fsanitize=$(SANITIZER) $(LDLAGS)
+endif
 
 ifdef Z80_LOG_ADDRESS
    CFLAGS+= -DZ80_LOG_ADDRESS

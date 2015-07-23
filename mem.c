@@ -42,4 +42,3 @@ void * alloc_code(size_t *size)
 	next = ret + *size;
 	return ret;
 }
-

@@ -17,13 +17,9 @@
 
 static uint8_t render_dbg = 0;
 static uint8_t debug_pal = 0;
-static uint32_t last_frame = 0;
 
 static int16_t * current_psg = NULL;
 static int16_t * current_ym = NULL;
-
-static uint32_t buffer_samples, sample_rate;
-static uint32_t missing_count;
 
 //SDL_cond * psg_cond;
 //SDL_cond * ym_cond;
