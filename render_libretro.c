@@ -560,7 +560,7 @@ RETRO_API void retro_get_system_av_info(struct retro_system_av_info *info)
 {
    info->geometry.base_width   = 320;
    info->geometry.base_height  = 240;
-   info->geometry.aspect_ratio = 320/240;
+   info->geometry.aspect_ratio = 320.0f/240.0f;
    info->geometry.max_width    = info->geometry.base_width;
    info->geometry.max_height   = info->geometry.base_height;
    info->timing.fps            = 60;
