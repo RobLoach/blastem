@@ -16,6 +16,8 @@
 #include "glad/glad.h"
 #include "libco/libco.h"
 
+#define NUM_JOYPADS 2
+
 static cothread_t main_thread = NULL;
 static cothread_t cpu_thread  = NULL;
 
@@ -84,7 +86,7 @@ void render_close_audio()
 
 int render_num_joysticks()
 {
-   return 8;
+   return NUM_JOYPADS;
 }
 
 uint32_t render_map_color(uint8_t r, uint8_t g, uint8_t b)
@@ -493,6 +495,69 @@ static void cpu_thread_wrapper()
    quitting = 1;
 }
 
+static tern_node *init_config(void)
+{
+   tern_node *head = NULL;
+   tern_node *bindings = NULL;
+   tern_node *pads = NULL;
+   tern_node *devices = NULL;
+   tern_node *io = NULL;
+
+   int i = 0;
+   for (i = 0; i < NUM_JOYPADS; ++i)
+   {
+      char key[50], value[50], padid[50];
+      tern_node *pad = NULL;
+      tern_node *dpads = NULL;
+      tern_node *buttons = NULL;
+
+#define insert_dpad(name, val) do{\
+   snprintf(value, sizeof(value), "%i", val);\
+   dpads = tern_insert_ptr(dpads, name, strdup(value));\
+   } while(0)
+      insert_dpad("up",    RETRO_DEVICE_ID_JOYPAD_UP);
+      insert_dpad("down",  RETRO_DEVICE_ID_JOYPAD_DOWN);
+      insert_dpad("left",  RETRO_DEVICE_ID_JOYPAD_LEFT);
+      insert_dpad("right", RETRO_DEVICE_ID_JOYPAD_RIGHT);
+      dpads = tern_insert_node(NULL, "0", dpads);
+#undef insert_dpad
+
+#define insert_button(name, val) do{\
+   snprintf(key, sizeof(key), "%i", val);\
+   snprintf(value, sizeof(value), "gamepads.%i.%s", i, name);\
+   buttons = tern_insert_ptr(buttons, key, strdup(value));\
+   }while(0)
+
+      insert_button("a",     RETRO_DEVICE_ID_JOYPAD_Y);
+      insert_button("b",     RETRO_DEVICE_ID_JOYPAD_B);
+      insert_button("c",     RETRO_DEVICE_ID_JOYPAD_A);
+      insert_button("x",     RETRO_DEVICE_ID_JOYPAD_L);
+      insert_button("y",     RETRO_DEVICE_ID_JOYPAD_X);
+      insert_button("z",     RETRO_DEVICE_ID_JOYPAD_R);
+      insert_button("mode",  RETRO_DEVICE_ID_JOYPAD_SELECT);
+      insert_button("start", RETRO_DEVICE_ID_JOYPAD_START);
+#undef insert_button
+
+      pad = tern_insert_node(NULL, "dpads", dpads);
+      pad = tern_insert_node(pad, "buttons", buttons);
+
+      snprintf(padid, sizeof(padid), "%i", i);
+      pads = tern_insert_node(pads, padid, pad);
+
+      snprintf(key, sizeof(key), "%i", i+1);
+      snprintf(value, sizeof(value), "gamepad6.%i", i+1);
+      devices = tern_insert_ptr(devices, key, strdup(value));
+   }
+
+   bindings = tern_insert_node(bindings, "pads", pads);
+   io       = tern_insert_node(io, "devices", devices);
+
+   head = tern_insert_node(head, "bindings", bindings);
+   head = tern_insert_node(head, "io", io);
+
+   return head;
+}
+
 RETRO_API void retro_run(void)
 {
 //   glBindFramebuffer(GL_FRAMEBUFFER, hw_render.get_current_framebuffer());
@@ -507,7 +572,7 @@ RETRO_API void retro_init(void)
 
    save_filename = "/xxxx_blastem__/a";
    set_exe_str("./blastem");
-   config = load_config();
+   config = init_config();
 }
 
 RETRO_API void retro_deinit(void) { }
