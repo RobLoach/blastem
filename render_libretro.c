@@ -35,7 +35,9 @@ static retro_environment_t   env_cb   = NULL;
 static retro_input_state_t   input_cb = NULL;
 static retro_input_poll_t    poll_cb  = NULL;
 static retro_video_refresh_t video_cb = NULL;
+#if 0
 static struct retro_hw_render_callback hw_render;
+#endif
 
 static bool bool_env(unsigned env, bool value) { return env_cb(env, &value); }
 static bool uint_env(unsigned env, unsigned value) { return env_cb(env, &value); }
@@ -89,7 +91,7 @@ uint32_t render_map_color(uint8_t r, uint8_t g, uint8_t b)
 {
    return 255 << 24 | r << 16 | g << 8 | b;
 }
-
+#if 0
 static GLuint textures[3], buffers[2], vshader, fshader, program, un_textures[2], un_width, at_pos;
 
 static GLfloat vertex_data[] = {
@@ -143,13 +145,13 @@ static GLuint load_shader(char * fname, GLenum shader_type)
    }
    return ret;
 }
-
+#endif
 void render_alloc_surfaces(vdp_context * context)
 {
    context->oddbuf = context->framebuf = calloc(1, 512 * 256 * 4 * 2);
    context->evenbuf = ((char *)context->oddbuf) + 512 * 256 * 4;
 }
-
+#if 0
 static void context_reset(void)
 {
    gladLoadGLLoader((GLADloadproc)hw_render.get_proc_address);
@@ -200,6 +202,7 @@ static void context_destroy(void)
    glDeleteBuffers(2, buffers);
    glDeleteProgram(program);
 }
+#endif
 
 void render_init(int width, int height, char * title, uint32_t fps, uint8_t fullscreen)
 {
@@ -227,6 +230,7 @@ void render_init(int width, int height, char * title, uint32_t fps, uint8_t full
 
 void render_context(vdp_context * context)
 {
+#if 0
    glBindTexture(GL_TEXTURE_2D, textures[context->framebuf == context->oddbuf ? 0 : 1]);
    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 320, 240, GL_BGRA, GL_UNSIGNED_BYTE, context->framebuf);;
 
@@ -251,7 +255,9 @@ void render_context(vdp_context * context)
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[1]);
    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_SHORT, (void *)0);
    glDisableVertexAttribArray(at_pos);
+#endif
 
+   video_cb(context->framebuf, context->regs[REG_MODE_4] & BIT_H40 ? 320.0f : 256.0f, 240, 320*sizeof(uint32_t));
    if (context->regs[REG_MODE_4] & BIT_INTERLACE)
       context->framebuf = context->framebuf == context->oddbuf ? context->evenbuf : context->oddbuf;
 }
@@ -336,7 +342,6 @@ int wait_render_frame(vdp_context * context, int frame_limit)
 
    poll_cb();
    render_context(context);
-   video_cb(RETRO_HW_FRAME_BUFFER_VALID, 320, 240, 320*sizeof(uint32_t));
    co_switch(main_thread);
 
    return 0;
@@ -490,7 +495,7 @@ static void cpu_thread_wrapper()
 
 RETRO_API void retro_run(void)
 {
-   glBindFramebuffer(GL_FRAMEBUFFER, hw_render.get_current_framebuffer());
+//   glBindFramebuffer(GL_FRAMEBUFFER, hw_render.get_current_framebuffer());
    co_switch(cpu_thread);
 
 }
@@ -522,7 +527,7 @@ RETRO_API bool retro_load_game(const struct retro_game_info *game)
       return false;
 
    uint_env(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, RETRO_PIXEL_FORMAT_XRGB8888);
-
+#if 0
    hw_render.context_type = RETRO_HW_CONTEXT_OPENGL;
    hw_render.context_reset = context_reset;
    hw_render.context_destroy = context_destroy;
@@ -532,6 +537,7 @@ RETRO_API bool retro_load_game(const struct retro_game_info *game)
 
    if (!env_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render))
       return false;
+#endif
 
    co_switch(cpu_thread);
 
