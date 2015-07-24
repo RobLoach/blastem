@@ -37,6 +37,7 @@ static retro_environment_t   env_cb   = NULL;
 static retro_input_state_t   input_cb = NULL;
 static retro_input_poll_t    poll_cb  = NULL;
 static retro_video_refresh_t video_cb = NULL;
+static retro_audio_sample_batch_t  audio_batch_cb = NULL;
 #if 0
 static struct retro_hw_render_callback hw_render;
 #endif
@@ -361,12 +362,33 @@ static int32_t handle_events(void)
 
 int wait_render_frame(vdp_context * context, int frame_limit)
 {
+   static int16_t audio_buf[512*2];
+   int16_t *buf, *ym;
+   int i;
    /* lets pray we're being called from cpu thread */
 
    poll_cb();
    handle_events();
 
    render_context(context);
+
+   if (!current_psg || !current_ym)
+      return 0;
+
+   buf = audio_buf;
+   ym  = current_ym;
+
+   for (i = 0; i < 512; ++i)
+   {
+      *buf++ = current_psg[i] + *ym++;
+      *buf++ = current_psg[i] + *ym++;
+   }
+
+   audio_batch_cb(audio_buf, 512);
+
+   current_psg = NULL;
+   current_ym  = NULL;
+
    co_switch(main_thread);
 
    return 0;
@@ -670,7 +692,7 @@ RETRO_API unsigned retro_api_version(void) { return RETRO_API_VERSION; }
 
 RETRO_API void retro_set_video_refresh(retro_video_refresh_t p) { video_cb = p; }
 RETRO_API void retro_set_audio_sample(retro_audio_sample_t p) { }
-RETRO_API void retro_set_audio_sample_batch(retro_audio_sample_batch_t p) { }
+RETRO_API void retro_set_audio_sample_batch(retro_audio_sample_batch_t p) { audio_batch_cb = p; }
 RETRO_API void retro_set_input_poll(retro_input_poll_t p) { poll_cb = p; }
 RETRO_API void retro_set_input_state(retro_input_state_t p) { input_cb = p; }
 RETRO_API void retro_set_environment(retro_environment_t p)
