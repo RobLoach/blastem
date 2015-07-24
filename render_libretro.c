@@ -185,20 +185,15 @@ static int32_t handle_events(void)
    return 0;
 }
 
-int wait_render_frame(vdp_context * context, int frame_limit)
+static void flush_audio(void)
 {
    /* lets pray we're being called from cpu thread */
    static int16_t audio_buf[512*2];
    int16_t *buf, *ym;
    int i;
 
-   poll_cb();
-   handle_events();
-
-   render_context(context);
-
    if (!current_psg || !current_ym)
-      return 0;
+      return;
 
    buf = audio_buf;
    ym  = current_ym;
@@ -213,6 +208,15 @@ int wait_render_frame(vdp_context * context, int frame_limit)
 
    current_psg = NULL;
    current_ym  = NULL;
+}
+
+int wait_render_frame(vdp_context * context, int frame_limit)
+{
+   poll_cb();
+   handle_events();
+
+   render_context(context);
+   flush_audio();
 
    co_switch(main_thread);
 
