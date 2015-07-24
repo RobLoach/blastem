@@ -260,7 +260,31 @@ void render_context(vdp_context * context)
    glDisableVertexAttribArray(at_pos);
 #endif
 
-   video_cb(context->framebuf, context->regs[REG_MODE_4] & BIT_H40 ? 320.0f : 256.0f, 240, 320*sizeof(uint32_t));
+   static uint32_t screen[320 * 480];
+   unsigned width  = context->regs[REG_MODE_4] & BIT_H40 ? 320.0f : 256.0f;
+   unsigned height = 240;
+   unsigned skip   = width;
+   uint32_t *src = (uint32_t*)context->framebuf;
+   uint32_t *dst = screen;
+   int i;
+
+   if (context->regs[REG_MODE_4] & BIT_INTERLACE)
+   {
+      skip   *= 2;
+      height *= 2;
+
+      if (context->framebuf == context->evenbuf)
+         dst += width;
+   }
+
+   for (i = 0; i < 240; ++i)
+   {
+      memcpy(dst, src, width*sizeof(uint32_t));
+      src += width;
+      dst += skip;
+   }
+
+   video_cb(screen, width, height, width*sizeof(uint32_t));
    if (context->regs[REG_MODE_4] & BIT_INTERLACE)
       context->framebuf = context->framebuf == context->oddbuf ? context->evenbuf : context->oddbuf;
 }
