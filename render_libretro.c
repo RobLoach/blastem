@@ -313,8 +313,29 @@ void render_debug_pal(uint8_t pal)
    }
 }
 
-static int32_t handle_event(void *event)
+static int16_t pads[NUM_JOYPADS][16];
+static int32_t handle_events(void)
 {
+   int16_t now[NUM_JOYPADS][16];
+   int i,j;
+   for (i = 0; i < NUM_JOYPADS; ++i)
+   {
+      for (j = 0; j < RETRO_DEVICE_ID_JOYPAD_R+1; ++j)
+      {
+         now[i][j] = input_cb(i, RETRO_DEVICE_JOYPAD, 0, j);
+
+         if (pads[i][j] != now[i][j])
+         {
+            if (now[i][j])
+               handle_joydown(i, j);
+            else
+               handle_joyup(i, j);
+         }
+
+         pads[i][j] = now[i][j];
+      }
+   }
+
    //	switch (event->type) {
    //	case SDL_KEYDOWN:
    //		handle_keydown(event->key.keysym.sym);
@@ -343,6 +364,8 @@ int wait_render_frame(vdp_context * context, int frame_limit)
    /* lets pray we're being called from cpu thread */
 
    poll_cb();
+   handle_events();
+
    render_context(context);
    co_switch(main_thread);
 
@@ -352,6 +375,7 @@ int wait_render_frame(vdp_context * context, int frame_limit)
 void process_events()
 {
    poll_cb();
+   handle_events();
    //	SDL_Event event;
    //	while(SDL_PollEvent(&event)) {
    //		handle_event(&event);
@@ -512,7 +536,7 @@ static tern_node *init_config(void)
       tern_node *buttons = NULL;
 
 #define insert_dpad(name, val) do{\
-   snprintf(value, sizeof(value), "%i", val);\
+   snprintf(value, sizeof(value), "gamepads.%i.%s", val, name);\
    dpads = tern_insert_ptr(dpads, name, strdup(value));\
    } while(0)
       insert_dpad("up",    RETRO_DEVICE_ID_JOYPAD_UP);
@@ -524,7 +548,7 @@ static tern_node *init_config(void)
 
 #define insert_button(name, val) do{\
    snprintf(key, sizeof(key), "%i", val);\
-   snprintf(value, sizeof(value), "gamepads.%i.%s", i, name);\
+   snprintf(value, sizeof(value), "gamepads.%i.%s", i+1, name);\
    buttons = tern_insert_ptr(buttons, key, strdup(value));\
    }while(0)
 
