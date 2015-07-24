@@ -216,7 +216,6 @@ int wait_render_frame(vdp_context * context, int frame_limit)
    handle_events();
 
    render_context(context);
-   flush_audio();
 
    co_switch(main_thread);
 
@@ -231,7 +230,7 @@ void process_events()
 
 void render_wait_psg(psg_context * context)
 {
-   /* TODO: flush audio */
+   flush_audio();
    current_psg = context->audio_buffer;
    context->audio_buffer = context->back_buffer;
    context->back_buffer = current_psg;
@@ -240,7 +239,7 @@ void render_wait_psg(psg_context * context)
 
 void render_wait_ym(ym2612_context * context)
 {
-   /* TODO: flush audio */
+   flush_audio();
    current_ym = context->audio_buffer;
    context->audio_buffer = context->back_buffer;
    context->back_buffer = current_ym;
