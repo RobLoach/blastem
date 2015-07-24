@@ -262,7 +262,7 @@ void render_context(vdp_context * context)
 
    static uint32_t screen[320 * 480];
    unsigned width  = context->regs[REG_MODE_4] & BIT_H40 ? 320.0f : 256.0f;
-   unsigned height = 240;
+   unsigned height = 224;
    unsigned skip   = width;
    uint32_t *src = (uint32_t*)context->framebuf;
    uint32_t *dst = screen;
@@ -277,7 +277,7 @@ void render_context(vdp_context * context)
          dst += width;
    }
 
-   for (i = 0; i < 240; ++i)
+   for (i = 0; i < 224; ++i)
    {
       memcpy(dst, src, width*sizeof(uint32_t));
       src += width;
@@ -704,8 +704,8 @@ RETRO_API void retro_get_system_info(struct retro_system_info *info)
 RETRO_API void retro_get_system_av_info(struct retro_system_av_info *info)
 {
    info->geometry.base_width   = 320;
-   info->geometry.base_height  = 240;
-   info->geometry.aspect_ratio = 320.0f/240.0f;
+   info->geometry.base_height  = 224;
+   info->geometry.aspect_ratio = 320.0f/224.0f;
    info->geometry.max_width    = info->geometry.base_width;
    info->geometry.max_height   = info->geometry.base_height;
    info->timing.fps            = 60;
