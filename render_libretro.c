@@ -536,7 +536,7 @@ static tern_node *init_config(void)
       tern_node *buttons = NULL;
 
 #define insert_dpad(name, val) do{\
-   snprintf(value, sizeof(value), "gamepads.%i.%s", val, name);\
+   snprintf(value, sizeof(value), "gamepads.%i.%s", i+1, name);\
    dpads = tern_insert_ptr(dpads, name, strdup(value));\
    } while(0)
       insert_dpad("up",    RETRO_DEVICE_ID_JOYPAD_UP);
@@ -560,6 +560,10 @@ static tern_node *init_config(void)
       insert_button("z",     RETRO_DEVICE_ID_JOYPAD_R);
       insert_button("mode",  RETRO_DEVICE_ID_JOYPAD_SELECT);
       insert_button("start", RETRO_DEVICE_ID_JOYPAD_START);
+      insert_button("up",    RETRO_DEVICE_ID_JOYPAD_UP);
+      insert_button("down",  RETRO_DEVICE_ID_JOYPAD_DOWN);
+      insert_button("left",  RETRO_DEVICE_ID_JOYPAD_LEFT);
+      insert_button("right", RETRO_DEVICE_ID_JOYPAD_RIGHT);
 #undef insert_button
 
       pad = tern_insert_node(NULL, "dpads", dpads);
