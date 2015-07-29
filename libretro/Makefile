@@ -19,7 +19,7 @@ ifneq ($(SANITIZER),)
 endif
 
 CFLAGS  := $(OPTIMIZE_FLAG) -std=gnu99 -Wall -D__LIBRETRO__ -I. -I.. -Ilibco $(SANITIZER)
-LDFLAGS := $(SANITIZER) -shared
+LDFLAGS := $(SANITIZER) -shared -Wl,--no-undefined
 LIBS    := -lm
 
 ifeq ($(platform),)

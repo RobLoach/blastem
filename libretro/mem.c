@@ -101,7 +101,7 @@ void *alloc_code(size_t *size)
 #  ifdef X86_64
    if (!map_hint)
    {
-      if (hint_location > 0xFFFFFFFFULL)
+      if ((uintptr_t)&hint_location > 0xFFFFFFFFULL)
          map_hint = (char*)round_page(&hint_location) - 0x20000000;
       else
          map_hint = (char*)0x20000000;
