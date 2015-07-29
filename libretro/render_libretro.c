@@ -265,36 +265,70 @@ void render_infobox(char *title, char *message)
       log_cb(RETRO_LOG_INFO, "%s: %s", title, message);
 }
 
-static int parse_smd_rom(const uint8_t *data, size_t size)
-{
-   return -1;
-}
-
 static int parse_rom(const uint8_t *data, size_t size)
 {
    uint8_t header[10];
+   bool is_smd = false;
 
    if (size < sizeof(header))
       return -1;
+
    memcpy(header, data, sizeof(header));
 
-   if (header[1] == SMD_MAGIC1 && header[8] == SMD_MAGIC2 && header[9] == SMD_MAGIC3) {
+   if (header[1] == SMD_MAGIC1 && header[8] == SMD_MAGIC2 && header[9] == SMD_MAGIC3)
+   {
       int i;
-      for (i = 3; i < 8; i++) {
-         if (header[i] != 0) {
+      for (i = 3; i < 8; i++)
+      {
+         if (header[i] != 0)
             break;
-         }
       }
-      if (i == 8) {
-         if (header[2]) {
-            fprintf(stderr, "Unsupported SMD ROM");
+
+      if (i == 8)
+      {
+         if (header[2])
+         {
+            if (log_cb)
+               log_cb(RETRO_LOG_ERROR, "Unsupported SMD ROM");
             exit(1);
          }
-         return parse_smd_rom(data, size);
+
+         if (size < SMD_HEADER_SIZE)
+            return -1;
+
+         is_smd = true;
       }
    }
+
    cart = (uint16_t*)malloc(size);
-   memcpy(cart, data, size);
+
+   if (is_smd)
+   {
+      uint16_t *dst       = cart;
+      size_t    remaining = size - SMD_HEADER_SIZE;
+
+      data += SMD_HEADER_SIZE;
+
+      while (remaining > 0 && remaining < size)
+      {
+         uint8_t  block[SMD_BLOCK_SIZE];
+         uint8_t *low  = block;
+         uint8_t *high = block+(SMD_BLOCK_SIZE/2);
+         uint8_t *end  = block+SMD_BLOCK_SIZE;
+
+         memcpy(block, data, SMD_BLOCK_SIZE);
+         data += SMD_BLOCK_SIZE;
+
+         for (; high < end; high++, low++)
+            *(dst++) = *low << 8 | *high;
+
+         remaining -= SMD_BLOCK_SIZE;
+      }
+
+      size -= SMD_HEADER_SIZE;
+   }
+   else
+      memcpy(cart, data, size);
 
    return size;
 }
