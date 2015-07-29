@@ -35,6 +35,7 @@ static retro_input_state_t   input_cb = NULL;
 static retro_input_poll_t    poll_cb  = NULL;
 static retro_video_refresh_t video_cb = NULL;
 static retro_audio_sample_batch_t  audio_batch_cb = NULL;
+static retro_log_printf_t    log_cb   = NULL;
 
 static bool uint_env(unsigned env, unsigned value) { return env_cb(env, &value); }
 
@@ -259,6 +260,18 @@ uint32_t render_sample_rate()
    return 48000;
 }
 
+void render_errorbox(char *title, char *message)
+{
+   if (log_cb)
+      log_cb(RETRO_LOG_ERROR, "%s: %s", title, message);
+}
+
+void render_infobox(char *title, char *message)
+{
+   if (log_cb)
+      log_cb(RETRO_LOG_INFO, "%s: %s", title, message);
+}
+
 static int parse_smd_rom(const uint8_t *data, size_t size)
 {
    return -1;
@@ -425,6 +438,12 @@ RETRO_API void retro_run(void)
 
 RETRO_API void retro_init(void)
 {
+   struct retro_log_callback log;
+   if (env_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
+      log_cb = log.log;
+   else
+      log_cb = NULL;
+
    main_thread = co_active();
    cpu_thread  = co_create(65536 * sizeof(void*), cpu_thread_wrapper);
 

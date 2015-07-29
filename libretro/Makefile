@@ -18,8 +18,8 @@ ifneq ($(SANITIZER),)
    LDFLAGS := -fsanitize=$(SANITIZER) $(LDLAGS)
 endif
 
-CFLAGS  := $(OPTIMIZE_FLAG) -std=gnu99 -D__LIBRETRO__ -I. -I.. -Ilibco $(SANITIZER)
-LDFLAGS := $(SANITIZER)
+CFLAGS  := $(OPTIMIZE_FLAG) -std=gnu99 -Wall -D__LIBRETRO__ -I. -I.. -Ilibco $(SANITIZER)
+LDFLAGS := $(SANITIZER) -shared
 LIBS    := -lm
 
 ifeq ($(platform),)
@@ -32,7 +32,9 @@ else ifeq ($(platform),win32)
    SOEXT := .dll
 endif
 
-TARGET := $(NAME)$(SOEXT)
+TARGET  := $(NAME)$(SOEXT)
+CFLAGS  += $(CFLAGS) $(FPIC) $(FLTO)
+LDFLAGS += $(LDFLAGS) $(FPIC) $(FLTO)
 
 # BlastEm objects
 OBJECTS += \
@@ -52,7 +54,7 @@ OBJECTS += \
    ../vdp.o\
    ../io.o\
    ../romdb.o\
-   ../gst.o
+   ../gst.o\
 
 ifeq ($(WITH_DYNAREC),x86)
    CFLAGS  += -DX86_32 -m32
@@ -71,17 +73,17 @@ else
 endif
 
 # blastem-libretro objects
-OBJECTS += mem.o render_libretro.o libco/libco.o
+OBJECTS += mem.o render_libretro.o libco/libco.o terminal.o
 
 all : $(TARGET)
 
-$(TARGET): $(OBJECTS)
-	$(CC) $(LDFLAGS) -o $(BLASTEM) $(OBJECTS) $(LIBS)
+$(TARGET): $(OBJECTS) Makefile
+	$(CC) $(LDFLAGS) -o $(TARGET) $(OBJECTS) $(LIBS)
 
-%.o : %.S
+%.o : %.S Makefile
 	$(CC) -c -o $@ $<
 
-%.o : %.c
+%.o : %.c Makefile
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean :
