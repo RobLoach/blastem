@@ -299,6 +299,27 @@ static int parse_rom(const uint8_t *data, size_t size)
    return size;
 }
 
+static tern_node *init_rom_db(void)
+{
+   tern_node *head = NULL;
+   const char *dir = NULL;
+   char *path = NULL;
+
+   if (env_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) && dir && *dir)
+   {
+      path = alloc_concat((char*)dir, (char*)"/rom.db");
+      head = parse_config_file(path);
+   }
+
+   if (path)
+      free(path);
+
+   if (!head)
+      head = tern_insert_int(NULL, "zero", 0);
+
+   return head;
+}
+
 static void cpu_thread_wrapper()
 {
    int rom_size  = parse_rom((const uint8_t*)game_info->data, game_info->size);
@@ -311,7 +332,7 @@ static void cpu_thread_wrapper()
    if (game_info == NULL)
       return;
 
-   tern_node *rom_db = load_rom_db();
+   tern_node *rom_db = init_rom_db();
    rom_info info = configure_rom(rom_db, cart, rom_size, base_map, sizeof(base_map)/sizeof(base_map[0]));
    byteswap_rom(rom_size);
    set_region(&info, 0);
