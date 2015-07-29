@@ -1,5 +1,5 @@
 /* vim: ts=3 sts=3 sw=3 et list :
- * Copyright 2015 higor Eurípedes
+ * Copyright 2015 Higor Eurípedes
  * This file is part of blastem-libretro.
  * This file is licensed under whatever license BlastEm is licensed under.
  */
@@ -13,7 +13,6 @@
 #include "io.h"
 #include "util.h"
 
-#include "glad/glad.h"
 #include "libco/libco.h"
 
 #define NUM_JOYPADS 2
@@ -327,7 +326,7 @@ static void cpu_thread_wrapper()
    psg_init(&p_context, render_sample_rate(), gen.master_clock, MCLKS_PER_PSG, render_audio_buffer());
 
 #ifndef NO_Z80
-   init_z80_opts(&z_opts, z80_map, 5, MCLKS_PER_Z80);
+   init_z80_opts(&z_opts, z80_map, 5, NULL, 0, MCLKS_PER_Z80);
    init_z80_context(&z_context, &z_opts);
    z80_assert_reset(&z_context, 0);
 #endif
