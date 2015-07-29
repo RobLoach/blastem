@@ -49,12 +49,10 @@ OBJECTS += \
    ../tern.o\
    ../util.o\
    ../blastem.o\
-   ../debug.o\
-   ../gdb_remote.o\
    ../vdp.o\
    ../io.o\
    ../romdb.o\
-   ../gst.o\
+   ../gst.o
 
 ifeq ($(WITH_DYNAREC),x86)
    CFLAGS  += -DX86_32 -m32
@@ -73,7 +71,7 @@ else
 endif
 
 # blastem-libretro objects
-OBJECTS += mem.o render_libretro.o libco/libco.o terminal.o
+OBJECTS += mem.o render_libretro.o libco/libco.o
 
 all : $(TARGET)
 

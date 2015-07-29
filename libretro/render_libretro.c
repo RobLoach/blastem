@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include "debug.h"
+#include "gdb_remote.h"
 #include "render.h"
 #include "blastem.h"
 #include "backend.h"
@@ -21,9 +23,6 @@ static cothread_t main_thread = NULL;
 static cothread_t cpu_thread  = NULL;
 
 static const struct retro_game_info *game_info;
-
-static uint8_t render_dbg = 0;
-static uint8_t debug_pal = 0;
 
 static int16_t * current_psg = NULL;
 static int16_t * current_ym = NULL;
@@ -136,7 +135,7 @@ int render_joystick_num_buttons(int joystick)
 
 int render_joystick_num_hats(int joystick)
 {
-   return 4; // 1 or 4?
+   return 1; // 1 or 4?
 }
 
 void render_wait_quit(vdp_context * context)
@@ -146,16 +145,10 @@ void render_wait_quit(vdp_context * context)
 
 void render_debug_mode(uint8_t mode)
 {
-   if (mode < 4) {
-      render_dbg = mode;
-   }
 }
 
 void render_debug_pal(uint8_t pal)
 {
-   if (pal < 4) {
-      debug_pal = pal;
-   }
 }
 
 static int16_t pads[NUM_JOYPADS][16];
@@ -311,12 +304,12 @@ static void cpu_thread_wrapper()
    int rom_size  = parse_rom((const uint8_t*)game_info->data, game_info->size);
 
    if (rom_size <= 0)
-   {
       game_info = NULL;
-      return;
-   }
 
    co_switch(main_thread);
+
+   if (game_info == NULL)
+      return;
 
    tern_node *rom_db = load_rom_db();
    rom_info info = configure_rom(rom_db, cart, rom_size, base_map, sizeof(base_map)/sizeof(base_map[0]));
@@ -429,6 +422,27 @@ static tern_node *init_config(void)
    head = tern_insert_node(head, (char*)"io", io);
 
    return head;
+}
+
+
+m68k_context *debugger(m68k_context *context, uint32_t address)
+{
+   (void)address;
+   return context;
+}
+
+void init_terminal()
+{
+}
+
+void gdb_remote_init(void)
+{
+}
+
+m68k_context *gdb_debug_enter(m68k_context * context, uint32_t pc)
+{
+   (void)pc;
+   return context;
 }
 
 RETRO_API void retro_run(void)
