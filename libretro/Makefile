@@ -62,6 +62,8 @@ else ifeq ($(WITH_DYNAREC),x86_64)
    CFLAGS  += -DX86_64 -m64
    LDFLAGS += -m64
    OBJECTS += ../m68k_core_x86.o ../gen_x86.o ../backend_x86.o
+else
+   $(error Invalid or missing WITH_DYNAREC value)
 endif
 
 ifeq ($(WITH_Z80),1)
