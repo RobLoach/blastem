@@ -559,7 +559,7 @@ RETRO_API void retro_get_system_info(struct retro_system_info *info)
    info->library_name     = "BlastEm";
    info->library_version  = "hg";
    info->need_fullpath    = false;
-   info->valid_extensions = "";
+   info->valid_extensions = "md|bin|smd";
 }
 
 RETRO_API void retro_get_system_av_info(struct retro_system_av_info *info)

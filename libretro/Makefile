@@ -4,7 +4,7 @@ SOEXT := .so
 FLTO  :=
 FPIC  :=
 WITH_Z80      := 1
-WITH_DYNAREC  :=
+WITH_DYNAREC  := x86_64
 OPTIMIZE_FLAG :=
 
 ifeq ($(DEBUG), 1)
