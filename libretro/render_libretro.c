@@ -602,3 +602,13 @@ RETRO_API size_t retro_get_memory_size(unsigned id) { return 0; }
 void force_no_terminal(void)
 {
 }
+
+void * menu_write_w(uint32_t address, void * context, uint16_t value)
+{
+   return NULL;
+}
+
+uint16_t menu_read_w(uint32_t address, void * context)
+{
+   return 0;
+}

@@ -141,11 +141,23 @@ tern_node *load_config()
 		}
 	}
 
+<<<<<<< HEAD
 	ret = parse_bundled_config("default.cfg");
+=======
+	ret = parse_config_file_assets("default.cfg");
+>>>>>>> 006c55f... Buildfix
 	if (ret) {
 		free(confpath);
 		return ret;
 	}
+<<<<<<< HEAD
+=======
+
+	fatal_error("Failed to find a config file in internal storage or in the blastem APK\n");
+	//this will never get reached, but the compiler doesn't know that. Let's make it happy
+	return NULL;
+}
+>>>>>>> 006c55f... Buildfix
 
 	if (confpath) {
 		fatal_error("Failed to find a config file at %s or in the blastem executable directory\n", confpath);
