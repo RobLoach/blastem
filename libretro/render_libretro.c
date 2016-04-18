@@ -599,3 +599,6 @@ RETRO_API void retro_cheat_set(unsigned index, bool enabled, const char *code) {
 RETRO_API void *retro_get_memory_data(unsigned id) { return NULL; }
 RETRO_API size_t retro_get_memory_size(unsigned id) { return 0; }
 
+void force_no_terminal(void)
+{
+}
