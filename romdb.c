@@ -33,9 +33,19 @@ char const *save_type_name(uint8_t save_type)
 	return "SRAM";
 }
 
+#ifdef __LIBRETRO__
+extern char core_romdb[512];
+#endif
+
 tern_node *load_rom_db()
 {
+#ifndef __LIBRETRO__
 	tern_node *db = parse_bundled_config("rom.db");
+#else
+	tern_node *db = parse_bundled_config(core_romdb);
+	db=parse_config_file(core_romdb);
+	if (!db)db = tern_insert_int(NULL, "zero", 0);
+#endif
 	if (!db) {
 		fatal_error("Failed to load ROM DB\n");
 	}
