@@ -27,11 +27,7 @@
 
 #define BLASTEM_VERSION "0.5.2-pre"
 
-#ifdef __ANDROID__
-#define FULLSCREEN_DEFAULT 1
-#else
 #define FULLSCREEN_DEFAULT 0
-#endif
 
 int headless = 0;
 int exit_after = 0;
