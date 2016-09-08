@@ -2,15 +2,26 @@ DEBUG := 0
 NAME  := blastem_libretro
 SOEXT := .so
 FLTO  :=
-FPIC  :=
 WITH_Z80      := 1
-WITH_DYNAREC  := x86_64
+WITH_DYNAREC  :=
 OPTIMIZE_FLAG :=
 
 ifeq ($(DEBUG), 1)
    OPTIMIZE_FLAG := -g
 else
    OPTIMIZE_FLAG := -O2
+endif
+
+ifeq (,$(ARCH))
+   ARCH = $(shell uname -m)
+endif
+
+WITH_DYNAREC = $(ARCH)
+
+PIC = 1
+ifeq ($(ARCH), $(filter $(ARCH), i386 i686))
+   WITH_DYNAREC = x86
+   PIC = 0
 endif
 
 ifneq ($(SANITIZER),)
@@ -26,10 +37,14 @@ ifeq ($(platform),)
    platform := unix
 endif
 
-ifeq ($(platform),unix)
-   FPIC := -fPIC
-else ifeq ($(platform),win32)
+ifeq ($(platform),win32)
    SOEXT := .dll
+endif
+
+ifeq ($(PIC), 1)
+   FPIC = -fPIC
+else
+   FPIC = -fno-PIC
 endif
 
 TARGET  := $(NAME)$(SOEXT)
