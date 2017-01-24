@@ -532,10 +532,11 @@ RETRO_API void retro_reset(void)
 RETRO_API bool retro_load_game(const struct retro_game_info *game)
 {
    game_info = game;
-   co_switch(cpu_thread);
 
-   if (game_info == NULL)
+   if (!game || game_info == NULL)
       return false;
+
+   co_switch(cpu_thread);
 
    uint_env(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, RETRO_PIXEL_FORMAT_XRGB8888);
 
