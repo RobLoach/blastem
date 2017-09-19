@@ -47,6 +47,11 @@ else
    FPIC = -fno-PIC
 endif
 
+prefix := /usr
+libdir := $(prefix)/lib
+
+LIBRETRO_INSTALL_DIR := libretro
+
 TARGET  := $(NAME)$(SOEXT)
 CFLAGS  += $(CFLAGS) $(FPIC) $(FLTO)
 LDFLAGS += $(LDFLAGS) $(FPIC) $(FLTO)
@@ -104,3 +109,10 @@ $(TARGET): $(OBJECTS) Makefile
 clean :
 	rm -rf $(OBJECTS) $(TARGET)
 
+install:
+	install -D -m 755 $(TARGET) $(DESTDIR)$(libdir)/$(LIBRETRO_INSTALL_DIR)/$(TARGET)
+
+uninstall:
+	rm $(DESTDIR)$(libdir)/$(LIBRETRO_INSTALL_DIR)/$(TARGET)
+
+.PHONY: clean install uninstall
