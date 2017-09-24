@@ -19,6 +19,14 @@
 
 #define NUM_JOYPADS 2
 
+char core_romdb[512];
+
+#ifdef _WIN32
+char slash = '\\';
+#else
+char slash = '/';
+#endif
+
 static cothread_t main_thread = NULL;
 static cothread_t cpu_thread  = NULL;
 
@@ -37,6 +45,13 @@ static retro_audio_sample_batch_t  audio_batch_cb = NULL;
 static retro_log_printf_t    log_cb   = NULL;
 
 static bool uint_env(unsigned env, unsigned value) { return env_cb(env, &value); }
+
+static uint32_t overscan_top[NUM_VID_STD] = {2, 21};
+static uint32_t overscan_bot[NUM_VID_STD] = {1, 17};
+static uint32_t overscan_left[NUM_VID_STD] = {13, 13};
+static uint32_t overscan_right[NUM_VID_STD] = {14, 14};
+static vid_std video_standard = VID_NTSC;
+static char *vid_std_names[NUM_VID_STD] = {"ntsc", "pal"};
 
 /* blastem.c */
 extern uint16_t *cart;
@@ -59,10 +74,12 @@ extern uint8_t version_reg;
 #ifndef NO_Z80
 extern const memmap_chunk z80_map[5];
 #endif
-void byteswap_rom(int filesize);
+void byteswap_rom(int filesize, uint16_t *cart);
 void set_region(rom_info *info, uint8_t region);
 void init_run_cpu(genesis_context * gen, rom_info *rom, FILE * address_log, char * statefile, uint8_t * debugger);
 
+static system_media rcart, rlock_on;
+system_header *current_system;
 
 /* extracted from main() */
 static vdp_context v_context;
@@ -71,6 +88,8 @@ static ym2612_context y_context;
 static psg_context p_context;
 static z80_context z_context;
 static z80_options z_opts;
+
+unsigned int *texbuffer[2];
 
 void render_close_audio()
 {
@@ -87,14 +106,22 @@ uint32_t render_map_color(uint8_t r, uint8_t g, uint8_t b)
    return 255 << 24 | r << 16 | g << 8 | b;
 }
 
-void render_alloc_surfaces(vdp_context * context)
+void render_alloc_surfaces()
 {
+/*
    context->oddbuf = context->framebuf = calloc(1, 512 * 256 * 4 * 2);
    context->evenbuf = ((char *)context->oddbuf) + 512 * 256 * 4;
+*/
+//context->fb= calloc(1, 512 * 256 * 4 * 2);
+   texbuffer[0]= calloc(1, 512 * 512 * 4 );
+   texbuffer[1]= calloc(1, 512 * 512 * 4 );
 }
 
-void render_init(int width, int height, char * title, uint32_t fps, uint8_t fullscreen)
+void render_init(int width, int height, char * title/*, uint32_t fps*/,uint8_t fullscreen)
 {
+   render_alloc_surfaces();
+   handle_joy_added(0);
+   handle_joy_added(1);
 }
 
 void render_context(vdp_context * context)
@@ -103,7 +130,7 @@ void render_context(vdp_context * context)
    unsigned width  = context->regs[REG_MODE_4] & BIT_H40 ? 320.0f : 256.0f;
    unsigned height = 224;
    unsigned skip   = width;
-   uint32_t *src = (uint32_t*)context->framebuf;
+   uint32_t *src = (uint32_t*)context->fb;//framebuf;
    uint32_t *dst = screen;
    int i;
 
@@ -112,7 +139,7 @@ void render_context(vdp_context * context)
       skip   *= 2;
       height *= 2;
 
-      if (context->framebuf == context->evenbuf)
+   //   if (context->framebuf == context->evenbuf)
          dst += width;
    }
 
@@ -124,8 +151,10 @@ void render_context(vdp_context * context)
    }
 
    video_cb(screen, width, height, width*sizeof(uint32_t));
+/*
    if (context->regs[REG_MODE_4] & BIT_INTERLACE)
-      context->framebuf = context->framebuf == context->oddbuf ? context->evenbuf : context->oddbuf;
+      context->framebuf = context->framebuf == context->oddbuf ? context->evenbuf : context->oddbuf;*/
+
 }
 
 int render_joystick_num_buttons(int joystick)
@@ -151,6 +180,127 @@ void render_debug_pal(uint8_t pal)
 {
 }
 
+void render_update_caption(char *title)
+{
+}
+void render_framebuffer_updated(uint8_t which, int width)
+{
+}
+uint32_t *locked_pixels;
+uint32_t locked_pitch;
+uint32_t *render_get_framebuffer(uint8_t which, int *pitch)
+{
+//printf("TTTTOOTTTOO\n");
+
+      if (which >= 2) {
+         warning("Request for invalid framebuffer number %d\n", which);
+         return NULL;
+      }
+
+      void *pixels;
+/*
+      if (SDL_LockTexture(sdl_textures[which], NULL, &pixels, pitch) < 0) {
+         warning("Failed to lock texture: %s\n", SDL_GetError());
+         return NULL;
+      }
+*/
+      *pitch=320*4;
+      pixels=texbuffer[which];
+
+      static uint8_t last;
+      if (which <= FRAMEBUFFER_EVEN) {
+         locked_pixels = pixels;
+         if (which == FRAMEBUFFER_EVEN) {
+            pixels += *pitch;
+         }
+         locked_pitch = *pitch;
+         if (which != last) {
+            *pitch *= 2;
+         }
+         last = which;
+      }
+      return pixels;
+}
+void render_save_screenshot(char *path)
+{
+}
+int32_t render_dpad_part(int32_t input)
+{
+   return input >> 4 & 0xFFFFFF;
+}
+
+uint8_t render_direction_part(int32_t input)
+{
+   return input & 0xF;
+}
+
+int32_t render_axis_part(int32_t input)
+{
+   return input & 0xFFFFFFF;
+}
+
+static uint32_t last_width;
+void render_toggle_fullscreen()
+{
+}
+uint32_t render_emulated_width()
+{
+   return last_width - overscan_left[video_standard] - overscan_right[video_standard];
+}
+
+uint32_t render_emulated_height()
+{
+   return (video_standard == VID_NTSC ? 243 : 294) - overscan_top[video_standard] - overscan_bot[video_standard];
+}
+
+uint32_t render_overscan_left()
+{
+   return overscan_left[video_standard];
+}
+
+uint32_t render_overscan_top()
+{
+   return overscan_top[video_standard];
+}
+int32_t render_translate_input_name(int32_t controller, char *name, uint8_t is_axis)
+{
+   return RENDER_NOT_MAPPED;
+}
+void render_set_video_standard(vid_std std)
+{
+// video_standard = std;
+}
+static uint8_t ym_enabled = 1;
+
+void render_disable_ym()
+{
+   ym_enabled = 0;
+}
+
+void render_enable_ym()
+{
+   ym_enabled = 1;
+}
+static int main_width=0, main_height=0, windowed_width=0, windowed_height=0, is_fullscreen=1;
+
+int render_width()
+{
+   return main_width;
+}
+
+int render_height()
+{
+   return main_height;
+}
+int render_fullscreen()
+{
+   return is_fullscreen;
+}
+static drop_handler drag_drop_handler;
+void render_set_drag_drop_handler(drop_handler handler)
+{
+   drag_drop_handler = handler;
+}
 static int16_t pads[NUM_JOYPADS][16];
 static int32_t handle_events(void)
 {
@@ -300,11 +450,11 @@ static int parse_rom(const uint8_t *data, size_t size)
       }
    }
 
-   cart = (uint16_t*)malloc(size);
+   rcart.buffer = (uint16_t*)malloc(size);
 
    if (is_smd)
    {
-      uint16_t *dst       = cart;
+      uint16_t *dst       = rcart.buffer;
       size_t    remaining = size - SMD_HEADER_SIZE;
 
       data += SMD_HEADER_SIZE;
@@ -328,11 +478,11 @@ static int parse_rom(const uint8_t *data, size_t size)
       size -= SMD_HEADER_SIZE;
    }
    else
-      memcpy(cart, data, size);
+      memcpy(rcart.buffer, data, size);
 
    return size;
 }
-
+/*
 static tern_node *init_rom_db(void)
 {
    tern_node *head = NULL;
@@ -353,9 +503,13 @@ static tern_node *init_rom_db(void)
 
    return head;
 }
+*/
 
 static void cpu_thread_wrapper()
 {
+   system_type stype = SYSTEM_UNKNOWN;
+   debugger_type dtype = DEBUGGER_NATIVE;
+
    int rom_size  = parse_rom((const uint8_t*)game_info->data, game_info->size);
 
    if (rom_size <= 0)
@@ -366,50 +520,37 @@ static void cpu_thread_wrapper()
    if (game_info == NULL)
       return;
 
-   tern_node *rom_db = init_rom_db();
-   rom_info info = configure_rom(rom_db, cart, rom_size, base_map, sizeof(base_map)/sizeof(base_map[0]));
-   byteswap_rom(rom_size);
-   set_region(&info, 0);
+   const char *dir = NULL;
 
-   /* TODO: Get correct fps for the region */
-   render_init(0, 0, NULL, 60, true);
+   if (env_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) && dir && *dir)
+   {
+      sprintf(core_romdb,"%s%crom.db\0",dir,slash);
+   }
 
-   memset(&gen, 0, sizeof(gen));
-   gen.master_clock = gen.normal_clock = MCLKS_NTSC;//fps == 60 ? MCLKS_NTSC : MCLKS_PAL;
+   render_init(0, 0, NULL/*, 60*/, true);
 
-   init_vdp_context(&v_context, version_reg & 0x40);
-   gen.frame_end = vdp_cycles_to_frame_end(&v_context);
-   char * config_cycles = tern_find_path(config, "clocks\0max_cycles\0").ptrval;
-   gen.max_cycles = config_cycles ? atoi(config_cycles) : DEFAULT_SYNC_INTERVAL;
+   rcart.dir = path_dirname(game_info);
+   rcart.name = basename_no_extension(game_info);
+   rcart.extension = path_extension(game_info);
+   rcart.size =rom_size;
 
-   ym_init(&y_context, render_sample_rate(), gen.master_clock, MCLKS_PER_YM, render_audio_buffer(), 0);
+   stype = detect_system_type(&rcart);
 
-   psg_init(&p_context, render_sample_rate(), gen.master_clock, MCLKS_PER_PSG, render_audio_buffer());
+   rom_info info;
 
-#ifndef NO_Z80
-   init_z80_opts(&z_opts, z80_map, 5, NULL, 0, MCLKS_PER_Z80);
-   init_z80_context(&z_context, &z_opts);
-   z80_assert_reset(&z_context, 0);
-#endif
-
-   z_context.system = &gen;
-   z_context.mem_pointers[0] = z80_ram;
-   z_context.mem_pointers[1] = z_context.mem_pointers[2] = (uint8_t *)cart;
-
-   gen.z80 = &z_context;
-   gen.vdp = &v_context;
-   gen.ym = &y_context;
-   gen.psg = &p_context;
-   genesis = &gen;
-   setup_io_devices(config, gen.ports);
-
-   set_keybindings(gen.ports);
+   current_system = alloc_config_system(stype, &rcart, 0, 0, &info);
+   if (!current_system) {
+      fatal_error("Failed to configure emulated machine for %s\n", rcart.name);
+   }
+   current_system->debugger_type = dtype;
+   current_system->enter_debugger = 0;
 
    co_switch(main_thread);
 
-   init_run_cpu(&gen, &info, NULL, NULL, NULL);
+   current_system->start_context(current_system, NULL);
 
    quitting = 1;
+
 }
 
 static tern_node *init_config(void)
@@ -479,11 +620,16 @@ static tern_node *init_config(void)
    return head;
 }
 
-
-m68k_context *debugger(m68k_context *context, uint32_t address)
+z80_context * zdebugger(z80_context * context, uint16_t address)
 {
    (void)address;
    return context;
+}
+
+void debugger(m68k_context *context, uint32_t address)
+{
+   (void)address;
+   return ;//context;
 }
 
 void init_terminal()
@@ -494,10 +640,10 @@ void gdb_remote_init(void)
 {
 }
 
-m68k_context *gdb_debug_enter(m68k_context * context, uint32_t pc)
+void gdb_debug_enter(m68k_context * context, uint32_t pc)
 {
    (void)pc;
-   return context;
+   return ;//context;
 }
 
 RETRO_API void retro_run(void)

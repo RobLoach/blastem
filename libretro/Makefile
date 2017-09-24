@@ -71,7 +71,19 @@ OBJECTS += \
    ../blastem.o\
    ../vdp.o\
    ../io.o\
+   ../i2c.o\
    ../romdb.o\
+   ../serialize.o\
+   ../sega_mapper.o\
+   ../system.o\
+   ../hash.o\
+   ../arena.o\
+   ../xband.o\
+   ../realtec.o\
+   ../multi_game.o\
+   ../nor.o\
+   ../sms.o\
+   ../genesis.o\
    ../gst.o
 
 ifeq ($(WITH_DYNAREC),x86)
@@ -98,21 +110,21 @@ OBJECTS += mem.o render_libretro.o libco/libco.o
 all : $(TARGET)
 
 $(TARGET): $(OBJECTS) Makefile
-	$(CC) $(LDFLAGS) -o $(TARGET) $(OBJECTS) $(LIBS)
+   $(CC) $(LDFLAGS) -o $(TARGET) $(OBJECTS) $(LIBS)
 
 %.o : %.S Makefile
-	$(CC) -c -o $@ $<
+   $(CC) -c -o $@ $<
 
 %.o : %.c Makefile
-	$(CC) $(CFLAGS) -c -o $@ $<
+   $(CC) $(CFLAGS) -c -o $@ $<
 
 clean :
-	rm -rf $(OBJECTS) $(TARGET)
+   rm -rf $(OBJECTS) $(TARGET)
 
 install:
-	install -D -m 755 $(TARGET) $(DESTDIR)$(libdir)/$(LIBRETRO_INSTALL_DIR)/$(TARGET)
+   install -D -m 755 $(TARGET) $(DESTDIR)$(libdir)/$(LIBRETRO_INSTALL_DIR)/$(TARGET)
 
 uninstall:
-	rm $(DESTDIR)$(libdir)/$(LIBRETRO_INSTALL_DIR)/$(TARGET)
+   rm $(DESTDIR)$(libdir)/$(LIBRETRO_INSTALL_DIR)/$(TARGET)
 
 .PHONY: clean install uninstall
