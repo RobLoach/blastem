@@ -44,6 +44,7 @@ tern_node *load_rom_db()
 #else
 	tern_node *db = parse_bundled_config(core_romdb);
 	db=parse_config_file(core_romdb);
+	if (!db)db = tern_insert_int(NULL, "zero", 0);
 #endif
 	if (!db) {
 		fatal_error("Failed to load ROM DB\n");
