@@ -7,26 +7,26 @@ WITH_DYNAREC  :=
 OPTIMIZE_FLAG :=
 
 ifeq ($(DEBUG), 1)
-   OPTIMIZE_FLAG := -g
+	OPTIMIZE_FLAG := -g
 else
-   OPTIMIZE_FLAG := -O2
+	OPTIMIZE_FLAG := -O2
 endif
 
 ifeq (,$(ARCH))
-   ARCH = $(shell uname -m)
+	ARCH = $(shell uname -m)
 endif
 
 WITH_DYNAREC = $(ARCH)
 
 PIC = 1
 ifeq ($(ARCH), $(filter $(ARCH), i386 i686))
-   WITH_DYNAREC = x86
-   PIC = 0
+	WITH_DYNAREC = x86
+	PIC = 0
 endif
 
 ifneq ($(SANITIZER),)
-   CFLAGS  := -fsanitize=$(SANITIZER) $(CFLAGS)
-   LDFLAGS := -fsanitize=$(SANITIZER) $(LDLAGS)
+	CFLAGS  := -fsanitize=$(SANITIZER) $(CFLAGS)
+	LDFLAGS := -fsanitize=$(SANITIZER) $(LDLAGS)
 endif
 
 CFLAGS  := $(OPTIMIZE_FLAG) -std=gnu99 -Wall -D__LIBRETRO__ -I. -I.. -Ilibco $(SANITIZER)
@@ -34,17 +34,17 @@ LDFLAGS := $(SANITIZER) -shared -Wl,--no-undefined
 LIBS    := -lm
 
 ifeq ($(platform),)
-   platform := unix
+	platform := unix
 endif
 
 ifeq ($(platform),win32)
-   SOEXT := .dll
+	SOEXT := .dll
 endif
 
 ifeq ($(PIC), 1)
-   FPIC = -fPIC
+	FPIC = -fPIC
 else
-   FPIC = -fno-PIC
+	FPIC = -fno-PIC
 endif
 
 prefix := /usr
@@ -58,50 +58,50 @@ LDFLAGS += $(LDFLAGS) $(FPIC) $(FLTO)
 
 # BlastEm objects
 OBJECTS += \
-   ../gen.o\
-   ../backend.o\
-   ../68kinst.o\
-   ../m68k_core.o\
-   ../ym2612.o\
-   ../psg.o\
-   ../wave.o\
-   ../config.o\
-   ../tern.o\
-   ../util.o\
-   ../blastem.o\
-   ../vdp.o\
-   ../io.o\
-   ../i2c.o\
-   ../romdb.o\
-   ../serialize.o\
-   ../sega_mapper.o\
-   ../system.o\
-   ../hash.o\
-   ../arena.o\
-   ../xband.o\
-   ../realtec.o\
-   ../multi_game.o\
-   ../nor.o\
-   ../sms.o\
-   ../genesis.o\
-   ../gst.o
+	../gen.o\
+	../backend.o\
+	../68kinst.o\
+	../m68k_core.o\
+	../ym2612.o\
+	../psg.o\
+	../wave.o\
+	../config.o\
+	../tern.o\
+	../util.o\
+	../blastem.o\
+	../vdp.o\
+	../io.o\
+	../i2c.o\
+	../romdb.o\
+	../serialize.o\
+	../sega_mapper.o\
+	../system.o\
+	../hash.o\
+	../arena.o\
+	../xband.o\
+	../realtec.o\
+	../multi_game.o\
+	../nor.o\
+	../sms.o\
+	../genesis.o\
+	../gst.o
 
 ifeq ($(WITH_DYNAREC),x86)
-   CFLAGS  += -DX86_32 -m32
-   LDFLAGS += -m32
-   OBJECTS += ../m68k_core_x86.o ../gen_x86.o ../backend_x86.o
+	CFLAGS  += -DX86_32 -m32
+	LDFLAGS += -m32
+	OBJECTS += ../m68k_core_x86.o ../gen_x86.o ../backend_x86.o
 else ifeq ($(WITH_DYNAREC),x86_64)
-   CFLAGS  += -DX86_64 -m64
-   LDFLAGS += -m64
-   OBJECTS += ../m68k_core_x86.o ../gen_x86.o ../backend_x86.o
+	CFLAGS  += -DX86_64 -m64
+	LDFLAGS += -m64
+	OBJECTS += ../m68k_core_x86.o ../gen_x86.o ../backend_x86.o
 else
-   $(error Invalid or missing WITH_DYNAREC value)
+	$(error Invalid or missing WITH_DYNAREC value)
 endif
 
 ifeq ($(WITH_Z80),1)
-   OBJECTS += ../z80inst.o ../z80_to_x86.o
+	OBJECTS += ../z80inst.o ../z80_to_x86.o
 else
-   CFLAGS += -DNO_Z80
+	CFLAGS += -DNO_Z80
 endif
 
 # blastem-libretro objects
@@ -110,21 +110,21 @@ OBJECTS += mem.o render_libretro.o libco/libco.o
 all : $(TARGET)
 
 $(TARGET): $(OBJECTS) Makefile
-   $(CC) $(LDFLAGS) -o $(TARGET) $(OBJECTS) $(LIBS)
+	$(CC) $(LDFLAGS) -o $(TARGET) $(OBJECTS) $(LIBS)
 
 %.o : %.S Makefile
-   $(CC) -c -o $@ $<
+	$(CC) -c -o $@ $<
 
 %.o : %.c Makefile
-   $(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean :
-   rm -rf $(OBJECTS) $(TARGET)
+	rm -rf $(OBJECTS) $(TARGET)
 
 install:
-   install -D -m 755 $(TARGET) $(DESTDIR)$(libdir)/$(LIBRETRO_INSTALL_DIR)/$(TARGET)
+	install -D -m 755 $(TARGET) $(DESTDIR)$(libdir)/$(LIBRETRO_INSTALL_DIR)/$(TARGET)
 
 uninstall:
-   rm $(DESTDIR)$(libdir)/$(LIBRETRO_INSTALL_DIR)/$(TARGET)
+	rm $(DESTDIR)$(libdir)/$(LIBRETRO_INSTALL_DIR)/$(TARGET)
 
 .PHONY: clean install uninstall
