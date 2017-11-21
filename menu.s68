@@ -169,16 +169,12 @@ dmasrc macro
 
 dir_buffer equ $100000
 menu_port  equ $180000
-<<<<<<< HEAD
 load_rom_port equ (menu_port+2*4)
 lock_on_port equ (menu_port+8*4)
-=======
->>>>>>> 006c55f... Buildfix
 
 MAX_DISPLAY equ 24
 
 	rsset $FFFF8000
-<<<<<<< HEAD
 x_pos           rs.w 1
 base_cmd        rs.l 1
 sprite_list     rs.l 160
@@ -206,13 +202,6 @@ num_menu        rs.b 1
 num_slots       rs.b 1
 port_off        rs.b 1
 
-=======
-x_pos       rs.w 1
-base_cmd    rs.l 1
-sprite_list rs.l 160
-num_sprites rs.b 1
-last_pad    rs.b 1
->>>>>>> 006c55f... Buildfix
 
 int_6:
 	dmasrc sprite_list, DMA_SRC_68K
@@ -228,16 +217,12 @@ int_6:
 	move.b d1, d0
 	move.l d0, (a1)
 	startdma $C000, VDP_VRAM_WRITE
-<<<<<<< HEAD
 	
 	move.w (menu_port+4*7), d0
 	btst #0, d0
 	bne show_pause_menu
 
 	;read gamepad/mouse in port 1
-=======
-
->>>>>>> 006c55f... Buildfix
 	lea PAD1_DATA, a2
 
 	bsr io_read
@@ -248,7 +233,6 @@ int_6:
 	move.b last_pad1.w, d1
 	eor.b d0, d1
 	and.b d0, d1
-<<<<<<< HEAD
 	move.b d0, last_pad1.w
 
 	bsr handle_pad_buttons
@@ -285,10 +269,6 @@ handle_pad_buttons:
 	bne handle_buttons_menu
 	tst.b num_slots.w
 	bne handle_buttons_save
-=======
-	move.b d0, (last_pad).w
-
->>>>>>> 006c55f... Buildfix
 	moveq #16, d2
 
 
@@ -301,7 +281,6 @@ buttons_no_leftright
 	bne down
 	btst #0, d1
 	bne up
-<<<<<<< HEAD
 	btst #7, d1
 	bne select_entry
 	btst #5, d1
@@ -314,9 +293,6 @@ handle_buttons_menu
 handle_buttons_save
 	moveq #32, d2
 	bra buttons_no_leftright
-=======
-	rte
->>>>>>> 006c55f... Buildfix
 
 down:
 	
@@ -357,7 +333,6 @@ up:
 
 	sub.w d2, (sprite_list).w
 	sub.w d2, (sprite_list+8).w
-<<<<<<< HEAD
 	rts
 
 right:
@@ -549,14 +524,6 @@ handle_mouse:
 int_4:
 empty_handler:
 	rte
-=======
-	rte
-
-int_4:
-empty_handler:
-	rte
-
->>>>>>> 006c55f... Buildfix
 
 id_lookup:
 	dc.b $0, $1, $4, $5
@@ -903,20 +870,6 @@ dtloop:
 	dbra d0, dtloop
 
 
-<<<<<<< HEAD
-=======
-
-	;clear name tables
-	vdpaccess $8000, VDP_VRAM_WRITE
-	moveq #32, d0
-	swap d0
-	move.b #32, d0
-	move.w #(64*64-1), d1
-ploop:
-	move.l d0, (a0)
-	dbra d1, ploop
-
->>>>>>> 006c55f... Buildfix
 	;setup SAT
 	;;vdpaccess $C000, VDP_VRAM_WRITE
 
@@ -929,7 +882,6 @@ ploop:
 	move.l #$01080500, (a2)+
 	move.l #$887F01AA, (a2)+
 	move.b #2, num_sprites.w
-<<<<<<< HEAD
 	
 show_main_menu:
 	bsr clear_screen
@@ -1006,9 +958,6 @@ render_page:
 	move.w #0, (a0)
 	move.w #4, (a0)
 	
-=======
-
->>>>>>> 006c55f... Buildfix
 	move.l #$40860002, d3
 	move.l d3, (a1)
 	move.l d3, base_cmd.w
@@ -1021,23 +970,7 @@ file_loop:
 	beq done_files
 	addq #1, a6 ;TODO: Do something with directory flag
 
-<<<<<<< HEAD
 	;skip over entries starting with a dot except ..
-=======
-	lea dir_buffer, a6
-	lea menu_port, a2
-	move.l a6, (a2)
-
-wait_complete:
-	tst.w (a2)
-	bne wait_complete
-
-	moveq #MAX_DISPLAY-1, d7
-file_loop:
-	tst.b (a6)+
-	addq #1, a6 ;TODO: Do something with directory flag
-
->>>>>>> 006c55f... Buildfix
 	cmp.b #$2E, (a6)
 	bne normal
 	cmp.b #$2E, (1, a6)
@@ -1050,12 +983,9 @@ file_loop:
 	move.l a6, d6
 	bra skip
 normal:
-<<<<<<< HEAD
 	;save entry pointer to page index
 	move.l a6, (a3)+
 	;print name on screen
-=======
->>>>>>> 006c55f... Buildfix
 	moveq #0, d0
 	bsr print_string
 	move.l a6, d6
@@ -1070,7 +1000,6 @@ skip:
 	move.l d6, a6
 
 	dbra d7, file_loop
-<<<<<<< HEAD
 	tst.b (a6)
 	beq done_files
 	move.b #1, more_pages.w
@@ -1138,11 +1067,6 @@ gamepad_setup:
 	;setup gamepads
 	move.b #$40, PAD1_CTRL
 	move.b #$40, PAD2_CTRL
-=======
-
-	;setup gamepad in port 1
-	move.b #$40, PAD1_CTRL
->>>>>>> 006c55f... Buildfix
 
 	move.w #$8174, (a1) ;enable display, vertical interrupts, DMA
 
@@ -1472,7 +1396,6 @@ widths:
 	dc.b 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1
 	dc.b 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
 	dc.b 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1
-<<<<<<< HEAD
 	
 main_menu:
 	dc.b "Load ROM", 0
@@ -1511,7 +1434,5 @@ pause_menu_func
 	dc.l save_state
 	dc.l load_state
 	dc.l exit
-=======
->>>>>>> 006c55f... Buildfix
 
 rom_end:
